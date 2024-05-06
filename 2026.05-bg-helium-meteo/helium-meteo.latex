@@ -1,0 +1,250 @@
+% SPDX-License-Identifier: CC-BY-SA-4.0
+
+\documentclass[lualatex,17pt,aspectratio=169]{beamer}
+
+\usepackage{polyglossia}
+\usepackage{listingsutf8}
+\usepackage{ulem}
+\usepackage{svg}
+\usepackage{qrcode}
+
+\setmainlanguage{bulgarian}
+\setotherlanguage{english}
+
+\svgsetup{inkscapelatex=false}
+
+\newcommand{\done}{\item[\mbox{\ooalign{$\checkmark$\cr\hidewidth$\square$\hidewidth\cr}}]}
+
+\lstset{
+    extendedchars=true,
+    language=C,
+    inputencoding=utf8
+}
+
+
+%\setsansfont{freeserif}
+%\setmainfont{freeserif}
+\setmainfont{FreeSerif}
+\setsansfont{FreeSans}
+\setmonofont{CMU Typewriter Text}
+%\setmonofont{FreeMono}
+
+\usetheme{Boadilla}
+\usecolortheme{whale}
+
+\graphicspath{ {./images/} }
+
+\title{ Хелиев термометър }
+\author{Димитър Димитров <dimitar@dinux.eu>}
+\date{16.05.2026}
+
+
+\begin{document}
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{За автора}
+  \begin{itemize}
+    \item Димитър Димитров
+    \item \textbf{Innie:} 15 години интегрира AOSP и Embedded Linux в MM Solutions EAD.
+    \begin{itemize}
+      \item Bootloaders, Linux kernel drivers, build systems, security, SoC secure boot, ...
+    \end{itemize}
+    \item \textbf{Outie:} Хоби да сглобява Embedded у-ва и поддържа PRU backend за GCC.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Какво е Helium Meteo?}
+  \begin{itemize}
+    \item Устройство за отчитане на температура, влажност и атм. налягане (BME280).
+    \item Изпраща отчети посредством радио.
+    \item Една батерия е достатъчна за работа няколко години.
+    \pause
+    \item Дотук прилича на "купешка" метео станция от железарията.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Buzzwords!}
+  \begin{itemize}
+    \item Open source
+    \item Zephyr
+    \item LoRaWAN
+    \item Private cloud
+    \item Cryptocurrency, blockchain
+    \item Made in EU
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Как изглежда?}
+  \includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{helium-meteo-breadboard.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Какво е Helium Meteo?}
+  \begin{itemize}
+    \item LoRaWan радио (STM32WL).
+    \begin{itemize}
+      \item Километри обхват при пряка видимост.
+    \end{itemize}
+    \item Хелиева мрежа за интернет на нещата.
+    \begin{itemize}
+      \item Helium IOT
+      \item \url{https://www.helium.com/iot}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Защо Helium Meteo?}
+  \begin{itemize}
+    \item Отчетите се записват в СУБД на собствен облак.
+    \item ~1000 SLOC C App на Zephyr OS.
+    \begin{itemize}
+      \item Най-добрата RTOS (според мен)!
+    \end{itemize}
+    \item Обща консумация под 10\mu A.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Защо Helium Meteo?}
+  \begin{itemize}
+    \item Отворен код.
+    \begin{itemize}
+      \item \url{https://github.com/dinuxbg/helium_meteo}
+    \end{itemize}
+    \item Цена - 50 изпратени отчета за 1 стотинка.
+    \item Цена - BOM е <20 EUR.
+      \begin{itemize}
+        \item Olimex BB-STM32WL-ANT.
+        \item Olimex MOD-BME280.
+      \end{itemize}
+    \item Добро покритие на Helium IOT.
+    \begin{itemize}
+      \item Десетки километри при пряка видимост с Hotspot.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Helium IOT}
+  \begin{itemize}
+    \item Радио покритие се осигурява от Helium Hotspots
+    \item Всеки може да закупи, постави и свърже Helium Hotspots.
+    \begin{itemize}
+      \item Облагата е, че се печели crypto валута.
+    \end{itemize}
+    \item Алтернативи на Helium IOT
+    \begin{itemize}
+      \item ChirpStack, open-source LoRaWAN® Network Server 
+      \item The Things Network
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Покритие, hotspots}
+  \includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{helium-coverage.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Как работи хелиевият термометър?}
+  \includesvg[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{software-arch}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Собствен облак}
+  \begin{itemize}
+    \item Helium IOT е само за пренос на данни.
+    \item HTTP integration server: ~200 SLOC Python.
+    \item SQLite DB.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Пример}
+\begin{lstlisting}
+$ cat queries/dump-data.sql | \
+  sqlite3 meteo.db | tail -2
+
+| Device name | °C  |  Pa   | %
+|-------------|-----|-------|----
+Helium Meteo 2|21.26|94000.0|48.0
+Helium Meteo 1|21.73|94000.0|43.0
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Пример}
+  \includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{plot-inside.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{История на firmware-a}
+  \begin{itemize}
+    \item \sout{Копиран от} Базиран на друг проект със Zephyr и LoRaWan.
+    \begin{itemize}
+      \item \url{https://github.com/retfie/helium_mapper}
+      \item Устройство за картографиране покритието на Helium мрежата.
+      \item Праща GPS координати посредством Helium LoRaWan.
+      \item Записва кои Helium hotspots са "чули" отчетите за дадени координати.
+    \end{itemize}
+  \item Махнах GPS, интегрирах BME280 драйвера на Zephyr.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Credits}
+  \begin{itemize}
+    \item Какъв е моят принос?
+    \pause
+    \item ... малък е.
+    \pause
+    \item И това е хубаво!
+    \item Без "заемките" от Opensource/Openhardware проекти, би ми отнело години вместо седмици,
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Credits}
+  \begin{itemize}
+    \item Olimex: Модули с Hobby-friendly 2.54" рейки, добра цена.
+    \item Zephyr: Поддръжка на огромно количество платки, uC, периферия.
+    \item github.com/retfie: Сподели production-quality firmware за Helium и Zephyr.
+    \item KiCad: Направих си PCB за около час.
+    \item YAPP\_Box: Направих си кутийка за половин час.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Спънки}
+  \begin{itemize}
+    \item Не изчистих board конфигурацията за Zephyr.
+    \item Zephyr + LoRa-STM32WL-DevKit.
+    \begin{itemize}
+      \item Power Management не тръгна.
+      \item Липса на драйвер за AHT20.
+      \item Може да е оправено в последните версии на Zephyr.
+    \end{itemize}
+    \item АЦП за измерване нивото на батерията.
+    \item Helium покритие: не изглежда да расте.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Какво следва?}
+  \begin{itemize}
+    \item Телеметрия за батерията.
+    \item По-ефективно отработване на зашумен ефир.
+    \item Web App.
+    \item Кутийка със Stevenson screen.
+  \end{itemize}
+  \qrcode{https://github.com/dinuxbg/helium_meteo}
+\end{frame}
+
+\end{document}
