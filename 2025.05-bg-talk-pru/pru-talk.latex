@@ -1,0 +1,238 @@
+% SPDX-License-Identifier: CC-BY-SA-4.0
+
+\documentclass[lualatex,17pt,aspectratio=169]{beamer}
+
+\usepackage{polyglossia}
+\setmainlanguage{bulgarian}
+\setotherlanguage{english}
+\usepackage{listingsutf8}
+
+\newcommand{\done}{\item[\mbox{\ooalign{$\checkmark$\cr\hidewidth$\square$\hidewidth\cr}}]}
+
+
+%\setsansfont{freeserif}
+%\setmainfont{freeserif}
+\setmainfont{FreeSerif}
+\setsansfont{FreeSans}
+\setmonofont{CMU Typewriter Text}
+%\setmonofont{FreeMono}
+
+\usetheme{Boadilla}
+\usecolortheme{whale}
+
+\graphicspath{ {./images/} }
+
+\title{ Софтуерно дефинирани периферни шини с PRU }
+\subtitle{ Bit banging на съвсем друго ниво. }
+\author{Димитър Димитров <dimitar@dinux.eu>}
+\date{10.05.2025}
+
+
+\begin{document}
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{За автора}
+  \begin{itemize}
+    \item Димитър Димитров
+    \item \textbf{Innie:} 15 години интегрира AOSP и Embedded Linux в MM Solutions EAD.
+    \begin{itemize}
+      \item Bootloaders, Linux kernel drivers, build systems, security, SoC secure boot, ...
+    \end{itemize}
+    \item \textbf{Outie:} Хоби да сглобява Embedded у-ва и поддържа PRU backend за GCC.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Защо да пиша периферна шина?}
+  \begin{itemize}
+    \item Занимаваш се с Embedded Linux?
+    \item Ще закачаш нестандартна периферия?
+    \begin{itemize}
+      \item Имам нужда от 15 \verb|SPI| host контролера.
+      \item Ще си правя JTAG/SWD адаптер.
+      \item G-code интерпретатор и управление на 5 стъпкови мотора.
+    \end{itemize}
+    \item Обаче не искаш \verb|FPGA|?
+    \item И не ти се занимава с външен \mu{}C?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Решение: bit banging}
+Пример за генериране на 500Hz тактов сигнал с произволно GPIO. 
+\begin{lstlisting}
+void loop()
+{
+  digitalWrite(8, HIGH);
+  delay(1);
+  digitalWrite(8, LOW);
+  delay(1);
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Какво е PRU?}
+  \begin{itemize}
+    \item 32-bit RISC процесорна архитектура - Programmable Realtime Unit.
+    \item Специализиран за входно/изходни операции.
+    \begin{itemize}
+      \item Bit banging, но не само.
+    \end{itemize}
+    \item 200MHz тактова честота.
+    \item Включен в някои SoC от Texas Instruments.
+    \begin{itemize}
+      \item Beaglebone OSHW едноплаткови компютри.
+    \end{itemize}
+    \item 2-4 ядра работят паралелно (I/О, трансфер на данни, обработка).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{PRU в SoC}
+\includegraphics[width=0.9\textwidth,height=0.9\textheight,keepaspectratio=true]{soc-pru.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{За какво мога да го ползвам?}
+  \begin{itemize}
+    \item Софтуерно реализирани периферни шини - bit bang I/O.
+    \begin{itemize}
+      \item Повечето инструкции се изпълняват за точно 1 цикъл (5ns).
+      \item PRU GPIO - достъп с една инструкция (5ns).
+      \item PRU GPIO - достъп чрез специални CPU регистри.
+      \item Липсват прекъсвания - за да има детерминизъм при I/O.
+      \item Без поточни линии (no pipeline).
+      \item PRU firmware е обикновено комбинация от C и асемблер.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{За какво мога да го ползвам?}
+  \begin{itemize}
+    \item Софтуерно реализирано \verb|DMA|.
+    \begin{itemize}
+      \item Достъп до системната шина на SoC.
+      \item ... включително \verb|DDR-SDRAM| паметта.
+      \item Предимство пред решение с външен \mu{}C.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{PRU0: Пример за четене на GPIO}
+\begin{lstlisting}
+MOV    R21.w0, R31.w0
+NOP
+...
+MOV    R28.w2, R31.w0
+XOUT   10, &R21, 36
+MOV    R21.w0, R31.w0
+LDI    R31, PRU1_PRU0_INTERRUPT + 16
+MOV    R21.w2, R31.w0
+JMP    $sample100m16$2
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{PRU0: Пример за четене на GPIO}
+\includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{pru-arch-pru0.png}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{PRU1: Пример за запис на данни}
+\begin{lstlisting}
+# Read 36 bytes from SPAD into R21-R29
+XIN     10, &R21, 36
+# Store 32 bytes into
+# buffer pointed by R18
+SBBO    &R21, R18, 0, 32
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{PRU1: Пример за четене на GPIO}
+\includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{pru-arch-pru1.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Отворени проекти с PRU}
+  \begin{itemize}
+    \item BeagleLogic - 14ch, 100Msps логически анализатор.
+    \begin{itemize}
+      \item 100\% OSHW, 99\% Open Source Software
+      \item Компилира се с TI Proprietary PRU C Compiler
+    \end{itemize}
+  \end{itemize}
+\includegraphics[width=0.5\textwidth,height=0.5\textheight,keepaspectratio=true]{beaglelogic-standalone-top.jpg}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Gnu for PRU}
+  През 2019г добавих поддръжка за PRU към GNU toolchain.
+  \begin{itemize}
+    \item Binutils
+    \item GCC
+    \item Newlib
+    \item gnuprumcu
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Свобода на 100\%! Mainline на 100\%!}
+  Позволява да изградите система единствено от свободен софтуер!
+  \begin{itemize}
+    \done SoC Linux BSP - good support in mainline.
+    \done Remoteproc Linux kernel driver - in mainline.
+    \done RPMSG Linux kernel driver - in mainline.
+    \done Binutils + GCC + Newlib toolchain - in mainline.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Моят проект с PRU}
+  \begin{itemize}
+    \item BeagleMic - USB аудио карта с 16 PDM микрофона.
+    \begin{itemize}
+      \item 100\% OSHW, 100\% Open Source Software
+      \item Компилира се с GCC
+    \end{itemize}
+  \end{itemize}
+\includegraphics[width=0.5\textwidth,height=0.5\textheight,keepaspectratio=true]{beaglemic.jpg}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Отворени проекти с PRU}
+\includegraphics[width=0.8\textwidth,height=0.8\textheight,keepaspectratio=true]{beaglemic-software-arch-16bit.png}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Недостатъци}
+  \begin{itemize}
+    \item Един единствен доставчик - Texas Instruments.
+    \item Сложно е (Remoteproc, RPMSG, resource tables)
+    \begin{itemize}
+      \item Но пък има множество примери, с които да се започне.
+    \end{itemize}
+    \item Примитивен паралелизъм, далеч от възможностите на FPGA.
+    \item Твори се на \verb|C| и \verb|Assembler|.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Полезни връзки}
+  \begin{itemize}
+    \item \url{https://bbb.io/pru}
+    \item \url{https://github.com/dinuxbg/gnurpru}
+    \item \url{https://github.com/dinuxbg/gnurpru/wiki}
+    \item \url{https://github.com/dinuxbg/pru-gcc-examples}
+    \item \url{https://github.com/dinuxbg/beaglemic}
+  \end{itemize}
+\end{frame}
+
+\end{document}

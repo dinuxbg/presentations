@@ -1,0 +1,13 @@
+@startuml
+binary "GPIO_8" as G
+
+@0
+G is High
+
+@1
+G is Low
+
+@2
+G is High
+
+@enduml
